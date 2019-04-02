@@ -3,7 +3,7 @@ const helmet = require('helmet');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const USERS = require('./data/dbQueries');
-const mustBeAuthed = require('./middleware/auth');
+const AUTH = require('./middleware/auth');
 const serverError = require('./middleware/error');
 
 const app = express();
@@ -24,6 +24,8 @@ const sessionConfig = {
 app.use(express.json());
 app.use(helmet());
 app.use(session(sessionConfig));
+
+app.use(AUTH.restrictedUrl);
 
 app.get('/', (req, res) => {
   res.status(200).json('[GET] /home');
@@ -83,7 +85,7 @@ app.post('/api/login', async (req, res, next) => {
 /*
 GET ALL USERS
 */
-app.get('/api/users', mustBeAuthed, async (req, res, next) => {
+app.get('/api/users', AUTH.mustBeAuthed, async (req, res, next) => {
   try {
     const getAllUsers = await USERS.getAllUsers();
     res.status(200).json(getAllUsers);
@@ -98,6 +100,18 @@ LOG OUT USER
 app.get('/api/logout', (req, res) => {
   req.session.destroy();
   res.json(`User was logged out`);
+});
+
+/*
+RESTRICTED ROUTE
+*/
+app.get('/api/restricted/users', async (req, res, next) => {
+  try {
+    const getAllUsers = await USERS.getAllUsers();
+    res.status(200).json(getAllUsers);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use(serverError);
